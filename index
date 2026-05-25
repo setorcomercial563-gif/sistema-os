@@ -47,7 +47,7 @@
 </div>
 
 <script>
-    const GAS_URL = 'https://docs.google.com/spreadsheets/d/1k5vSQbVEF_Wtyvom05BCuYqS_0s2A1KPgI6mF9HC1mc/edit?gid=1766686349#gid=1766686349'; // Substitua pela URL do Passo 1
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxbiomgO8f8CFkvGm-Nb_Eikd0rO4zY49eCVo97hZwcI_uojQ91_V2Eq6mzrMbbswkMdw/exec'; // Substitua pela URL do Passo 1
     let currentUser = null;
 
     // Verifica sessão ativa ao carregar a página
