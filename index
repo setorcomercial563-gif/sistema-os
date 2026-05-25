@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema OS</title>
+    <style>
+        /* CSS Bruto e Responsivo */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f4f4f4; }
+        .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .hidden { display: none; }
+        input, select, textarea { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #218838; }
+        .logout-btn { background: #dc3545; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="login-screen">
+    <h2>Acesso ao Sistema</h2>
+    <input type="password" id="pin" placeholder="Digite seu PIN de 5 dígitos" maxlength="5" pattern="\d{5}">
+    <label>
+        <input type="checkbox" id="keep-logged"> Manter conectado
+    </label>
+    <button onclick="fazerLogin()">Entrar</button>
+</div>
+
+<div class="container hidden" id="os-screen">
+    <h2>Nova Ordem de Serviço</h2>
+    <p>Usuário: <span id="user-name"></span> (<span id="user-level"></span>)</p>
+    
+    <input type="text" id="empresa" placeholder="Empresa / Loja">
+    <input type="text" id="classificacao" placeholder="Classificação Principal (ex: Manutenção)">
+    <input type="text" id="subclassificacao" placeholder="Subclassificação (ex: Elétrica)">
+    <textarea id="observacao" placeholder="Observação principal" rows="3"></textarea>
+    
+    <select id="prioridade">
+        <option value="Baixa">Baixa</option>
+        <option value="Média">Média</option>
+        <option value="Alta">Alta</option>
+        <option value="Urgente">Urgente</option>
+    </select>
+    
+    <button onclick="criarOS()">Salvar OS</button>
+    <button class="logout-btn" onclick="fazerLogout()">Sair</button>
+</div>
+
+<script>
+    const GAS_URL = 'SUA_URL_DO_WEB_APP_AQUI'; // Substitua pela URL do Passo 1
+    let currentUser = null;
+
+    // Verifica sessão ativa ao carregar a página
+    window.onload = () => {
+        const savedUser = localStorage.getItem('os_user');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            alternarTelas('os-screen');
+            preencherDadosUsuario();
+        }
+    };
+
+    async function fazerLogin() {
+        const pin = document.getElementById('pin').value;
+        const keepLogged = document.getElementById('keep-logged').checked;
+
+        if (pin.length !== 5) return alert('O PIN deve ter 5 dígitos.');
+
+        const payload = { action: 'login', pin: pin };
+        
+        try {
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                currentUser = data.user;
+                if (keepLogged) {
+                    localStorage.setItem('os_user', JSON.stringify(currentUser));
+                } else {
+                    sessionStorage.setItem('os_user', JSON.stringify(currentUser));
+                }
+                alternarTelas('os-screen');
+                preencherDadosUsuario();
+                document.getElementById('pin').value = '';
+            } else {
+                alert(data.message);
+            }
+        } catch (error) {
+            alert('Erro de conexão com o servidor.');
+        }
+    }
+
+    async function criarOS() {
+        const payload = {
+            action: 'create_os',
+            userId: currentUser.id,
+            empresa: document.getElementById('empresa').value,
+            classificacao: document.getElementById('classificacao').value,
+            subclassificacao: document.getElementById('subclassificacao').value,
+            observacao: document.getElementById('observacao').value,
+            prioridade: document.getElementById('prioridade').value
+        };
+
+        if (!payload.empresa || !payload.classificacao) return alert('Preencha os campos obrigatórios.');
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                alert('OS Criada com sucesso! ID: ' + data.osId);
+                // Limpa formulário
+                document.querySelectorAll('#os-screen input[type="text"], #os-screen textarea').forEach(el => el.value = '');
+            } else {
+                alert('Erro ao criar OS: ' + data.message);
+            }
+        } catch (error) {
+            alert('Erro ao enviar dados.');
+        }
+    }
+
+    function fazerLogout() {
+        localStorage.removeItem('os_user');
+        sessionStorage.removeItem('os_user');
+        currentUser = null;
+        alternarTelas('login-screen');
+    }
+
+    function alternarTelas(telaAtiva) {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('os-screen').classList.add('hidden');
+        document.getElementById(telaAtiva).classList.remove('hidden');
+    }
+
+    function preencherDadosUsuario() {
+        document.getElementById('user-name').innerText = currentUser.nome;
+        document.getElementById('user-level').innerText = currentUser.nivel;
+    }
+</script>
+
+</body>
+</html>
